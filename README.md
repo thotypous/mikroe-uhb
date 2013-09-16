@@ -1,7 +1,7 @@
 mikroe-uhb
 ==========
 
-USB HID Bootloader application for devices manufactured by MikroElektronika.
+USB HID Bootloader programming application for devices manufactured by MikroElektronika.
 
 
 Supported devices
