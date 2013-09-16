@@ -40,11 +40,11 @@ class Command:
         buf = struct.pack(self._fmt, self.stx, self.cmd, self.addr, self.counter)
         return buf.ljust(HID_buf_size, b'\x00')
     def send(self, f):
-        """Send the command to a rawhid device"""
+        """Send the command to a hidraw device"""
         f.write(b'\x00' + self.buf())
     @staticmethod
     def recv(f):
-        """Receive a command from a rawhid device"""
+        """Receive a command from a hidraw device"""
         return Command.from_buf(f.read(HID_buf_size))
     
     _map = None
@@ -78,7 +78,7 @@ class Command:
 class Device:
     bootinfo = None
     def __init__(self, fileObj):
-        """Create a Device given a rawhid device file object"""
+        """Create a Device given a hidraw device file object"""
         self.f = fileObj
     def send(self, cmd):
         """Send a Command"""
