@@ -63,12 +63,12 @@ PIC32-based kits apparently need their own `fix_bootloader` implementation in `d
 
 Code should be self-documenting. There are also some useful tools for dealing with USB captures made with Wireshark under the `devtools` directory. Please read the comments.
 
-If cannot contribute with code, providing USB capture dumps is very useful. They can be obtained the following way:
+If you cannot contribute with code, providing USB capture dumps is very useful. They can be obtained the following way:
 
 * Install this application in your computer, or at least copy the `conf/mikroe-uhb.conf` file to `/etc/modprobe.d`. It is meant to prevent your system from detecting the USB HID Bootloader as a usbtouchscreen and messing things up.
 * Install mikroBootloader in a Windows VM inside VirtualBox or other virtualization software with decent USB emulation support.
 * Load the `usbmon` module (`modprobe usbmon`) and use Wireshark to start a USB capture. Then, fire mikroBootloader and program your device.
-* Please provide me with the capture file saved by Wireshark and with the HEX file you used to program your device.
+* Please provide me with the capture file saved by Wireshark and with the hex file you used to program your device.
 
 ### Support for other operating systems
 
