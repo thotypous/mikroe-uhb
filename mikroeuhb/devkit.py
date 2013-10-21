@@ -120,10 +120,13 @@ class DevKitModel:
            method if a devkit has a more complex memory map."""
         self._write_phy(addr - self.flash_mem_offset, data)
     
-    def fix_bootloader(self):
+    def fix_bootloader(self, disable_bootloader=False):
         """Make any changes to the program code needed for the bootloader
            to work. Override this method to implement the changes needed
-           for each different devkit."""
+           for each different devkit. If disable_bootloader is enabled
+           (use with caution), the device will be set in a way, if
+           supported, such that the bootloader will not be loaded
+           automatically anymore."""
         pass
     
     _write_max = 0x8000
@@ -187,7 +190,7 @@ class ARMDevKit(DevKitModel):
     _supported = ['ARM', 'STELLARIS_M3', 'STELLARIS_M4', 'STELLARIS']
     """The devkits above appear to use the default Flash memory block model,
        thus only the bootloader fix needs to diverge from the base devkit model."""
-    def fix_bootloader(self):
+    def fix_bootloader(self, disable_bootloader=False):
         """Fix the first block to point the reset address to the bootloader.
            Put in the location expected by the bootloader a small ARM-Thumb
            program to initialize the stack pointer and to jump to the program
@@ -199,7 +202,8 @@ class ARMDevKit(DevKitModel):
             logger.warn('reset address 0x%x does not have a Thumb mark -- enforcing it' % resetaddr)
             resetaddr |= 1
         # Change the reset address to point to the bootloader code.
-        first_block[4:8] = struct.pack('<L', self.BootStart|1)
+        if not disable_bootloader:
+            first_block[4:8] = struct.pack('<L', self.BootStart|1)
         logger.debug('first block after fix: ' + hexlify(first_block[:8]))
         
         def load_r0(value):

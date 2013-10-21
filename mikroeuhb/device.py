@@ -118,11 +118,12 @@ class Device:
         """Send a REBOOT command (restarts the device)"""
         self.send(Command.from_attr(Command.REBOOT))
         
-    def program(self, hexf=None, print_info=True):
+    def program(self, hexf=None, print_info=True, disable_bootloader=False):
         """Do a sequence of commands to program the hexf file
            (codified in Intel HEX format) to the flash memory.
            If hexf is not supplied, only read the bootinfo.
            If print_info is True, print bootinfo to standard output.
+           Use disable_bootloader with caution.
         """
         import devkit, hexfile
         bootinfo = self.cmd_info()
@@ -133,6 +134,6 @@ class Device:
             self.cmd_sync()
             kit = devkit.factory(bootinfo)
             hexfile.load(hexf, kit)
-            kit.fix_bootloader()
+            kit.fix_bootloader(disable_bootloader)
             kit.transfer(self)
             self.cmd_reboot()

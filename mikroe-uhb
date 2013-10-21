@@ -6,16 +6,18 @@ from mikroeuhb.device import Device
 def usage():
     sys.stderr.write("""usage: %s [options] [file.hex]
 options:
-    -h | --help       displays this message
-    -v | --verbose    output debugging messages
-    --vendor=0x1234   specify USB vendor ID
-    --product=0x0001  specify USB product ID
+    -h | --help           displays this message
+    -v | --verbose        output debugging messages
+    --vendor=0x1234       specify USB vendor ID
+    --product=0x0001      specify USB product ID
+    --disable-bootloader  use with caution (see wiki)
 """ % sys.argv[0])
 
 def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'hv',
-                                   ['help', 'verbose', 'vendor=', 'product='])
+                                   ['help', 'verbose', 'vendor=', 'product=',
+                                    'disable-bootloader'])
     except getopt.GetoptError as err:
         sys.stderr.write(str(err) + '\n')
         usage()
@@ -24,6 +26,7 @@ def main():
     loglevel = logging.WARNING
     vendor = 0x1234
     product = 0x0001
+    disable_bootloader = False
     
     for o, a in opts:
         if o in ('-h', '--help'):
@@ -35,6 +38,8 @@ def main():
             vendor = int(a, 16)
         elif o == '--product':
             product = int(a, 16)
+        elif o == '--disable-bootloader':
+            disable_bootloader = True
         else: assert(False)
     
     hexf = None
@@ -48,7 +53,7 @@ def main():
     logging.basicConfig(level=loglevel)
     udev_dev = wait_dev(vendor, product)
     dev = Device(open(udev_dev.device_node, 'r+b', buffering=0))
-    dev.program(hexf)
+    dev.program(hexf, disable_bootloader=disable_bootloader)
 
 if __name__ == '__main__':
     main()
