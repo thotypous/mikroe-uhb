@@ -112,8 +112,10 @@ class BootInfo(dict):
             v = self[k]
             if isinstance(v, int):
                 v = '0x%x' % v
+            elif isinstance(v, bytes):
+                v = v.split(b'\x00', 1) [0]
+                v = repr(v)
             else:
-                v = v.split('\x00', 1) [0]
                 v = repr(v)
             s += '%s: %s\n' % (k,v)
         return s
