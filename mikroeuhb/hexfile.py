@@ -33,6 +33,9 @@ def load(f, devkit):
                 raise IOError('line %d: extended linear address record must have 2 bytes of data' % lineno)
             base_addr, = struct.unpack('>H', data)
             base_addr <<= 16
-        else:
+        elif record_type == 0x02:  # extended segment address record
+            base_addr, = struct.unpack('>H', data)
+            base_addr <<= 4
+        elif record_type not in [0x03, 0x05]:  # used for the initial PC (ignored)
             raise IOError('line %d: unsupported record type %d' % (lineno, record_type))
     
