@@ -25,6 +25,20 @@ class MikromediaSTM32(BootInfoCase):
         'McuSize': 0x100000,
     }
 
+class PIC18Board(BootInfoCase):
+    data = """2b010208008000000340000420000500120600630000074e4f
+    204e414d4500000000000000000000000000000000000000000000000000
+    000000000000000000"""
+    expected = {
+        'McuType': 'PIC18',
+        'EraseBlock': 0x40,
+        'WriteBlock': 0x20,
+        'BootRev': 0x1200,
+        'BootStart': 0x6300,
+        'DevDsc': b'NO NAME\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
+        'McuSize': 0x8000,
+    }
+
 class RandomBootInfo(BootInfoCase):
     """Assemble random BootInfo structs, compile them using gcc -m32,
     and check if they are correctly parsed by us"""
@@ -117,4 +131,4 @@ class RandomBootInfo(BootInfoCase):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
 
-load_tests = repeatable.make_load_tests([MikromediaSTM32, RandomBootInfo])
+load_tests = repeatable.make_load_tests([MikromediaSTM32, PIC18Board, RandomBootInfo])
