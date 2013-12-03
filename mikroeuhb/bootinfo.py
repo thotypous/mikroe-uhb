@@ -32,15 +32,15 @@ _field = {
 }
 assert(0 not in _field)  # No field shall have a zero id
 
-# 16-bit MCUs apparently have packed structs
-# XXX Needs further assessment. Works with bootinfo data obtained from a
-#     PIC18 board kindly provided by Kerekes Szilard. However, I have seen
-#     some code for aligning 32-bit fields to 16-bit on these MCUs when
-#     reverse engineering the mikrobootloader executable.
-_16bit_mcus = ['PIC16', 'PIC18', 'PIC18FJ', 'PIC24', 'DSPIC']
+# MCUs below apparently use packed structs.
 _fieldalign_override = dict([(field_name,
-                              dict([(mcu, 1) for mcu in _16bit_mcus])) 
+                              dict([(mcu, 1) for mcu in 'PIC16', 'PIC18', 'PIC18FJ']))
                              for field_name,_,_ in _field.itervalues()])
+# MCUs below appear to align fields to 2 bytes instead of aligning to 4 bytes.
+# XXX needs testings
+for mcu in 'PIC24', 'DSPIC':
+    for field_name in 'BootStart', 'McuSize':
+        _fieldalign_override[field_name][mcu] = 2
 
 class BootInfo(dict):
     def __init__(self, buf, endianness='<'):

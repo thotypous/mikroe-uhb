@@ -100,7 +100,7 @@ class RandomBootInfo(BootInfoCase):
                 allowed = enum_map.keys()
                 if tid == 1:
                     reverse_enum_map = dict([(v,k) for k,v in enum_map.iteritems()])
-                    disallowed = set([reverse_enum_map[x] for x in bootinfo._16bit_mcus])
+                    disallowed = set([reverse_enum_map[mcu] for x in bootinfo._fieldalign_override.itervalues() for mcu in x.iterkeys()])
                     allowed = list(set(allowed) - disallowed)
                 value = random.choice(allowed)
                 expected_value = enum_map[value]
