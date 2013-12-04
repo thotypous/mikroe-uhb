@@ -54,7 +54,7 @@ class DevKitModel:
         """Initialize blocks of size EraseBlock from address 0 to BootStart.
            Override this method if a devkit does not have a constant block size.
            This method needs to initialize self.dirty and self.blocks."""
-        numblocks = self.BootStart / self.EraseBlock
+        numblocks = self.BootStart // self.EraseBlock
         block_init = b'\xff' * self.EraseBlock
         # dirty is a list of booleans which tells us if the i-th block is
         # meant to be flashed to the device
@@ -253,6 +253,31 @@ class STM32DevKit(ARMDevKit):
         assert(len(self.blocks) == numblocks)
         assert(sum([len(x) for x in self.blocks]) == self.BootStart)
         
+
+class PIC18DevKit(DevKitModel):
+    _supported = ['PIC18', 'PIC18FJ']
+
+    config_data_addr = 0x300000
+    """ The address above is used for writing PIC configuration data.
+        However, writing this is not supported by the bootloader, so
+        we simply ignore any writes to this address."""
+
+    def write(self, addr, data):
+        if addr != self.config_data_addr:
+            DevKitModel.write(self, addr, data)
+
+    def fix_bootloader(self, disable_bootloader=False):
+        first_block = self.blocks[0]
+        jump_to_main_prog = first_block[:4]
+        logger.debug('first block before fix: ' + hexlify(jump_to_main_prog))
+        if not disable_bootloader:
+            assert(self.BootStart & 1 == 0)
+            k = self.BootStart >> 1
+            first_block[0:2] = encode_instruction('11101111abcdefgh', k & 0xff)
+            first_block[2:4] = encode_instruction('1111abcdefghijkl', k >> 8)
+        logger.debug('first block after fix: ' + hexlify(first_block[:4]))
+        self.write(self.BootStart - len(jump_to_main_prog), jump_to_main_prog)
+
 
 _map = {}
 def factory(bootinfo):

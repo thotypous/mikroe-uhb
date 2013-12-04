@@ -1,4 +1,4 @@
-import random, logging, unittest
+import re, random, logging, unittest
 from pkg_resources import resource_stream
 from binascii import unhexlify, hexlify
 from gzip import GzipFile
@@ -17,17 +17,16 @@ def gzresource(filename):
         gzf.xreadlines = gzf.readlines
     return gzf
 
-class FakeDevFile:
+class FakeDevFile(object):
     """Fake device file-object which aims to behave like UHB firmware
        revision 0x1200. All data transfered from/to the virtual device
        is appended to self.transfers."""
-    bootloadermode = False
-    response = None
-    idle = True
-    counter = 0
-    transfers = []
-    
     def __init__(self, bootinforaw):
+        self.bootloadermode = False
+        self.response = None
+        self.idle = True
+        self.counter = 0
+        self.transfers = []
         self.bootinforaw = bootinforaw
         self.bootinfo = BootInfo(bootinforaw)
         self.bufsize = self.bootinfo['EraseBlock']  # size of firmware's char[] fBuffer
@@ -82,19 +81,34 @@ class FakeDevFile:
             if self.counter == 0:
                 self.idle = True
 
-class STM32Program(unittest.TestCase):
-    """Test if the calculator sample for the STM32 Cortex-M4 devkit
-       is written as expected. Important: this test is fragile, and
+class DevKitCase(unittest.TestCase):
+    """Important: tests derived from this class are fragile, and
        may easily fail if the programming algorithm is changed in
        the devkit module."""
     def runTest(self):
-        fakefile = FakeDevFile(unhexlify(
-            '38012500080000000000100003000040040004000500101306'+
-            '00000000000e00076d696b726f6d6564696100000000000000'+
-            '0000000000000000000000000000'))
+        fakefile = FakeDevFile(unhexlify(re.sub(r'\s+','',self.bootinfo)))
         dev = Device(fakefile)
-        dev.program(gzresource('stm32calc.hex.gz'), False)
-        expected = [line.strip() for line in gzresource('stm32calc.cap.gz').xreadlines()]
+        dev.program(gzresource(self.hexfile), False)
+        expected = [line.strip() for line in gzresource(self.capfile).xreadlines()]
         self.assertListEqual(fakefile.transfers, expected)
 
-load_tests = repeatable.make_load_tests([STM32Program])
+class STM32Program(DevKitCase):
+    """Test if the calculator sample for the STM32 Cortex-M4 devkit
+       is written as expected."""
+    bootinfo = """380125000800000000001000030000400400040005001013
+    0600000000000e00076d696b726f6d65646961000000000000000000000000
+    000000000000000000"""
+    hexfile = 'stm32calc.hex.gz'
+    capfile = 'stm32calc.cap.gz'
+
+class PIC18Program(DevKitCase):
+    """Test if the LED blinking sample kindly provided by
+       Kerekes Szilard is written as expected onto a
+       PIC18 devkit."""
+    bootinfo = """2b010208008000000340000420000500120600630000074e
+    4f204e414d4500000000000000000000000000000000000000000000000000
+    000000000000000000"""
+    hexfile = 'pic18ledblink.hex.gz'
+    capfile = 'pic18ledblink.cap.gz'
+
+load_tests = repeatable.make_load_tests([STM32Program, PIC18Program])
