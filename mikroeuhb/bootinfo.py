@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 # Map MCU type numeric codes to their names
 _mcutype_enum = {
     1:  'PIC16', 2: 'PIC18', 3: 'PIC18FJ', 4: 'PIC24',
-    10: 'DSPIC',
+    10: 'DSPIC', 11: 'DSPIC33',
     20: 'PIC32',
     30: 'ARM',
     31: 'STELLARIS_M3',
@@ -37,8 +37,7 @@ _fieldalign_override = dict([(field_name,
                               dict([(mcu, 1) for mcu in 'PIC16', 'PIC18', 'PIC18FJ']))
                              for field_name,_,_ in _field.itervalues()])
 # MCUs below appear to align fields to 2 bytes instead of aligning to 4 bytes.
-# XXX needs testings
-for mcu in 'PIC24', 'DSPIC':
+for mcu in 'PIC24', 'DSPIC', 'DSPIC33':
     for field_name in 'BootStart', 'McuSize':
         _fieldalign_override[field_name][mcu] = 2
 

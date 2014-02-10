@@ -25,6 +25,20 @@ class MikromediaSTM32(BootInfoCase):
         'McuSize': 0x100000,
     }
 
+class MikromediaDSPIC33(BootInfoCase):
+    data = """32010b000800000408000300000c0400800105000013060000
+    400500076d696b726f6d6564696100000000000000000000000000000000
+    000000000000000000"""
+    expected = {
+        'McuType': 'DSPIC33',
+        'EraseBlock': 0xc00,
+        'WriteBlock': 0x180,
+        'BootRev': 0x1300,
+        'BootStart': 0x54000,
+        'DevDsc': b'mikromedia\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
+        'McuSize': 0x80400,
+    }
+
 class PIC18Board(BootInfoCase):
     data = """2b010208008000000340000420000500120600630000074e4f
     204e414d4500000000000000000000000000000000000000000000000000
@@ -131,4 +145,5 @@ class RandomBootInfo(BootInfoCase):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
 
-load_tests = repeatable.make_load_tests([MikromediaSTM32, PIC18Board, RandomBootInfo])
+load_tests = repeatable.make_load_tests([MikromediaSTM32, MikromediaDSPIC33,
+                                         PIC18Board, RandomBootInfo])
