@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 import re, random, logging, unittest
 from pkg_resources import resource_stream
 from binascii import unhexlify, hexlify
@@ -111,4 +112,14 @@ class PIC18Program(DevKitCase):
     hexfile = 'pic18ledblink.hex.gz'
     capfile = 'pic18ledblink.cap.gz'
 
-load_tests = repeatable.make_load_tests([STM32Program, PIC18Program])
+class DSPIC33Program(DevKitCase):
+    """Test if the LED blinking sample kindly provided by
+       Toni Petrovič is written as expected onto a
+       DSPIC33 devkit."""
+    bootinfo = """32010b000800000408000300000c04008001050000130600
+    00400500076d696b726f6d6564696100000000000000000000000000000000
+    000000000000000000"""
+    hexfile = 'dspic33calc.hex.gz'
+    capfile = 'dspic33calc.cap.gz'
+
+load_tests = repeatable.make_load_tests([STM32Program, PIC18Program, DSPIC33Program])

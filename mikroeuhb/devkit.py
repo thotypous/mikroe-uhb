@@ -1,15 +1,17 @@
 import struct, logging
-from util import hexlify, maketrans
+from util import hexlify, maketrans, bord
 from device import Device, Command, HID_buf_size
 logger = logging.getLogger(__name__)
 
 def encode_instruction(template, field=None, endianness='<'):
     """Encodes a MCU instruction, returning it as a bytestring.
        The template must be supplied as a string of bits, of
-       length 8, 16 or 32. The template may contain lowercase
+       length 8, 16, 24 or 32. The template may contain lowercase
        letters (a-z) which are substituted by a field (from the
        most to the least significant bits). Endianness may be
        specified using Python's struct module notation."""
+    _map = {8: 'B', 16: 'H', 24: 'L', 32: 'L'}
+    assert(len(template) in _map and endianness in '<>')
     a,z = map(ord, 'az')
     max_c = 0
     for c in template:
@@ -25,8 +27,10 @@ def encode_instruction(template, field=None, endianness='<'):
         field = bin(field)[2:].rjust(max_c, '0')
         template = template.translate(maketrans(orig, field))
     instruction = int(template, 2)
-    _map = {8: 'B', 16: 'H', 32: 'L'}
-    return struct.pack(endianness + _map[len(template)], instruction)
+    instruction = struct.pack(endianness + _map[len(template)], instruction)
+    if len(template) == 24:
+        instruction = instruction[:-1] if endianness == '<' else instruction[1:]
+    return instruction
     
 class DevKitModel:
     """Inherit from this class to implement support for new development kits.
@@ -71,14 +75,22 @@ class DevKitModel:
         self.blockaddr = [0]
         for x in self.blocks:
             self.blockaddr.append(self.blockaddr[-1] + len(x))
-           
+    
+    def _write_addr(self, blk, blk_off=0):
+        """Get the address of a block which needs to be supplied to the
+           WRITE command. By default, returns the same as defined in
+           self.blockaddr. Override this method if a devkit expects
+           addresses supplied to WRITE to be different from the
+           physical Flash byte positions."""
+        return self.blockaddr[blk] + blk_off
+    
     def _erase_addr(self, blk):
         """Get the address of a block which needs to be supplied to the
            ERASE command. By default, returns the same as defined in
-           self.blockaddr. Override this method if a devkit expects
+           self._write_addr. Override this method if a devkit expects
            addresses supplied to ERASE to be different from the ones
            supplied to WRITE."""
-        return self.blockaddr[blk]
+        return self._write_addr(blk)
     
     _ptr = 0
     """Last Flash memory block to which data was written. Used to speed
@@ -151,7 +163,7 @@ class DevKitModel:
                 data = blk_data[blk_off:blk_off+self._write_max]
                 # Inform the device we are starting to send data
                 dev.send(Command.from_attr(Command.WRITE,
-                                           self.blockaddr[blk] + blk_off,
+                                           self._write_addr(blk, blk_off),
                                            len(data)))
                 dev_buf_rem = dev_buf_size
                 # Split into USB HID packets
@@ -280,6 +292,71 @@ class PIC18DevKit(DevKitModel):
         logger.debug('first block after fix: ' + hexlify(first_block[:4]))
         self.write(self.BootStart - len(jump_to_main_prog), jump_to_main_prog)
 
+
+class PIC24DevKit(DevKitModel):
+    _supported = ['PIC24', 'DSPIC', 'DSPIC33']
+    
+    config_data_addr = 0x1f00008
+    """ The address above is used for writing PIC configuration data.
+        However, writing this is not supported by the bootloader, so
+        we simply ignore any writes to this address."""
+    
+    def _pic24_addr_to_phy(self, addr):
+        """Convert a PIC24/DSPIC address representation to the
+           physical number-of-the-byte inside the Flash blocks."""
+        assert(addr % 2 == 0)
+        return 3*addr//2
+    
+    def _phy_addr_to_pic24(self, addr):
+        """Inverse function of _pic24_addr_to_phy"""
+        assert(addr % 3 == 0)
+        return 2*addr//3
+    
+    def _hex_addr_to_phy(self, addr):
+        """For every four bytes in a PIC24/DSPIC hexfile, the
+           fourth byte is a null padding byte."""
+        assert(addr % 4 == 0)
+        return 3*addr//4
+    
+    def _init_blocks(self):
+        # Take into account that device informs BootStart in PIC24-style address
+        self.BootStart = self._pic24_addr_to_phy(self.BootStart)
+        DevKitModel._init_blocks(self)
+        self.BootStart = self._phy_addr_to_pic24(self.BootStart)
+    
+    def _write_addr(self, blk, blk_off=0):
+        return self._phy_addr_to_pic24(self.blockaddr[blk] + blk_off)
+    
+    def write(self, addr, data):
+        if addr == self.config_data_addr:
+            return
+        assert(len(data) % 4 == 0)
+        newd = []
+        # discard padding bytes (at every fourth byte)
+        for i in xrange(0, len(data), 4):
+            newd += list(data[i:i+3])
+            padbyte = bord(data[i+3])
+            if padbyte != 0:
+                logger.warning('padding byte at addr 0x%x (%02X) is not null' %
+                               (addr+i+3, padbyte))
+        # write the new data array
+        self._write_phy(self._hex_addr_to_phy(addr), bytearray(newd))
+    
+    def fix_bootloader(self, disable_bootloader=False):
+        first_block = self.blocks[0]
+        jump_to_main_prog = first_block[:6]
+        logger.debug('first block before fix: ' + hexlify(jump_to_main_prog))
+        if not disable_bootloader:
+            assert(self.BootStart & 1 == 0)
+            # http://ww1.microchip.com/downloads/en/DeviceDoc/70157F.pdf p.250
+            # GOTO lit23 (2 words instruction)
+            first_block[0:3] = encode_instruction('00000100abcdefghijklmnop',
+                                                  self.BootStart & 0xffff)
+            first_block[3:6] = encode_instruction('00000000000000000abcdefg',
+                                                  self.BootStart >> 16)
+        logger.debug('first block after fix: ' + hexlify(first_block[:6]))
+        self._write_phy(self._pic24_addr_to_phy(self.BootStart) -
+                        len(jump_to_main_prog), jump_to_main_prog)
 
 _map = {}
 def factory(bootinfo):
