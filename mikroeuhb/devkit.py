@@ -273,6 +273,8 @@ class PIC18DevKit(DevKitModel):
         if not disable_bootloader:
             assert(self.BootStart & 1 == 0)
             k = self.BootStart >> 1
+            # http://ww1.microchip.com/downloads/en/DeviceDoc/39500a.pdf p.726
+            # GOTO k (2 words instruction)
             first_block[0:2] = encode_instruction('11101111abcdefgh', k & 0xff)
             first_block[2:4] = encode_instruction('1111abcdefghijkl', k >> 8)
         logger.debug('first block after fix: ' + hexlify(first_block[:4]))
