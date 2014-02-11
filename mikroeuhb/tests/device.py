@@ -113,7 +113,7 @@ class PIC18Program(DevKitCase):
     capfile = 'pic18ledblink.cap.gz'
 
 class DSPIC33Program(DevKitCase):
-    """Test if the LED blinking sample kindly provided by
+    """Test if the calculator sample kindly provided by
        Toni Petrovič is written as expected onto a
        DSPIC33 devkit."""
     bootinfo = """32010b000800000408000300000c04008001050000130600
