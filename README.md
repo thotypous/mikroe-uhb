@@ -17,6 +17,12 @@ If you plan to test this application using any development kit different from th
 
 This project is currently under test with PIC18 devices. Many thanks to Kerekes Szilard for providing USB captures and further information.
 
+### dsPIC and PIC24 devices
+
+This project is currently under test with a **Mikromedia for dsPIC33EP** development kit. Many thanks to Toni Petrovič for providing USB captures and further information.
+
+PIC24 devices were still not tested, but should also be supported by the same backend, as the architectures are much similar and reverse engineering revealed almost identical handling of them by mikroBootloader.
+
 
 How to install
 --------------
