@@ -29,3 +29,8 @@ def wait_dev(vendor, product, subsystem='hidraw'):
             if usbid == (vendor, product):
                 logger.info('USB ID matches the expected one')
                 return dev
+            
+def open_dev(vendor, product):
+    """Wait a device to be attached and open its device node"""
+    udev_dev = wait_dev(vendor, product)
+    return open(udev_dev.device_node, 'r+b', buffering=0)

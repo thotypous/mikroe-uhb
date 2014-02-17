@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import sys, getopt, logging
-from mikroeuhb.udev import wait_dev
+from mikroeuhb.hid import open_dev
 from mikroeuhb.device import Device
 
 def usage():
@@ -51,8 +51,7 @@ def main():
         sys.exit(1)    
     
     logging.basicConfig(level=loglevel)
-    udev_dev = wait_dev(vendor, product)
-    dev = Device(open(udev_dev.device_node, 'r+b', buffering=0))
+    dev = Device(open_dev(vendor, product))
     dev.program(hexf, disable_bootloader=disable_bootloader)
 
 if __name__ == '__main__':
