@@ -1,7 +1,7 @@
 mikroe-uhb
 ==========
 
-USB HID Bootloader programming application for devices manufactured by MikroElektronika.
+Open-source cross-platform USB HID Bootloader programming application for devices manufactured by MikroElektronika.
 
 
 Supported devices
@@ -27,6 +27,8 @@ PIC24 devices were still not tested, but should also be supported by the same ba
 How to install
 --------------
 
+### On Linux
+
 First, you need to check if you have `python-setuptools` installed.
 Then, just run:
 
@@ -34,7 +36,15 @@ Then, just run:
 make && sudo make install
 ```
 
-This application is compatible both with Python 2.7 and with Python 3. The `pyudev` module is required, but will be installed automatically if it is not already present. Currently, only Linux is supported.
+This application is compatible both with Python 2.7 and with Python 3. The `pyudev` module is required, but will be installed automatically if it is not already present.
+
+### On Windows
+
+We provide standalone binary releases [here](https://github.com/thotypous/mikroe-uhb/releases). Just download the executable and use it.
+
+### On other operating systems
+
+Other operating systems were not tested yet, but the tool should work on any OS supported by cython-hidapi, like OSX and FreeBSD. Try to run `python setup.py install`. If other steps are needed, please contact us so that the documentation can be updated.
 
 
 How to use
@@ -83,7 +93,3 @@ If you cannot contribute with code, providing USB capture dumps is very useful. 
 * Please provide me with the capture file saved by Wireshark and with the hex file you used to program your device.
 
 You can also take USB captures directly on Wireshark for Windows if you install the [usbpcap driver](http://desowin.org/usbpcap) and follow the instructions in its website. Please do not forget to use a Wireshark version able to support the driver.
-
-### Support for other operating systems
-
-This project currently only supports Linux. Contributions for introducing support for BSD or other operating systems are welcome.
