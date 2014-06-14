@@ -358,6 +358,48 @@ class PIC24DevKit(DevKitModel):
         self._write_phy(self._pic24_addr_to_phy(self.BootStart) -
                         len(jump_to_main_prog), jump_to_main_prog)
 
+class PIC32DevKit(DevKitModel):
+    _supported = ['PIC32']
+
+    config_data_addr = 0x1f00008
+    """ The address above is used for writing PIC configuration data.
+        However, writing this is not supported by the bootloader, so
+        we simply ignore any writes to this address."""
+
+    def _pic32_addr_to_phy(self, addr):
+        """Convert a PIC32 address representation to the
+           physical number-of-the-byte inside the Flash blocks."""
+        return addr
+
+    def _phy_addr_to_pic32(self, addr):
+        """Inverse function of _pic32_addr_to_phy"""
+        return addr
+
+    def _hex_addr_to_phy(self, addr):
+        """Every four bytes in a PIC32 hexfile are a word"""
+        return addr
+
+    def _init_blocks(self):
+        # Take into account that device informs BootStart in PIC32-style address
+        self.BootStart = self._pic32_addr_to_phy(self.BootStart)
+        DevKitModel._init_blocks(self)
+        self.BootStart = self._phy_addr_to_pic32(self.BootStart)
+
+    def _write_addr(self, blk, blk_off=0):
+        return self._phy_addr_to_pic32(self.blockaddr[blk] + blk_off)
+
+    def write(self, addr, data):
+        if addr == self.config_data_addr:
+            return
+        assert(len(data) % 4 == 0)
+        # write the new data array
+        self._write_phy(self._hex_addr_to_phy(addr), bytearray(data))
+
+    def fix_bootloader(self, disable_bootloader=False):
+        first_block = self.blocks[0]
+        jump_to_main_prog = first_block[:8]
+        logger.debug('first block: ' + hexlify(jump_to_main_prog))
+
 _map = {}
 def factory(bootinfo):
     """Factory for constructing devkit objects from a bootinfo dictionary"""

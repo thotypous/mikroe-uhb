@@ -32,5 +32,6 @@ def wait_dev(vendor, product, subsystem='hidraw'):
             
 def open_dev(vendor, product):
     """Wait a device to be attached and open its device node"""
+    logger.debug('opening device vendor=%x, product=%x' % (vendor, product))
     udev_dev = wait_dev(vendor, product)
     return open(udev_dev.device_node, 'r+b', buffering=0)
