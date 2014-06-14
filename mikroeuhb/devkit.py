@@ -2,6 +2,10 @@ import struct, logging
 from util import hexlify, maketrans, bord
 from device import Device, Command, HID_buf_size
 logger = logging.getLogger(__name__)
+if __debug__:
+    logger.setLevel(logging.DEBUG)
+MAXBLOCKS = 4096 * 32  # buffer no more than this many data blocks
+USE_CACHE = True  # PIC32 uses different virtual locations for cached flash
 
 def encode_instruction(template, field=None, endianness='<'):
     """Encodes a MCU instruction, returning it as a bytestring.
@@ -65,7 +69,9 @@ class DevKitModel:
         self.dirty = [False for i in xrange(numblocks)]
         # blocks is a list of bytearrays, containing data to be flashed
         # to each flash block
-        self.blocks = [bytearray(block_init) for i in xrange(numblocks)]
+        maxblocks = min(MAXBLOCKS, numblocks)
+        logger.debug('buffering %d of %d blocks' % (maxblocks, numblocks))
+        self.blocks = [bytearray(block_init) for i in xrange(maxblocks)]
     def _init_blockaddr(self):
         """Initialize self.blockaddr, a list containing the starting address
            of each Flash memory block. By default, addresses start at zero,
@@ -365,15 +371,27 @@ class PIC32DevKit(DevKitModel):
     """ The address above is used for writing PIC configuration data.
         However, writing this is not supported by the bootloader, so
         we simply ignore any writes to this address."""
-
+    ''' http://hades.mech.northwestern.edu
+        /index.php/NU32v2:_A_Detailed_Look_at_Programming_the_PIC32
+        shows mapping of pic32 addresses to physical addresses'''
     def _pic32_addr_to_phy(self, addr):
         """Convert a PIC32 address representation to the
            physical number-of-the-byte inside the Flash blocks."""
-        return addr
+        return addr & 0x1fffffff
 
     def _phy_addr_to_pic32(self, addr):
-        """Inverse function of _pic32_addr_to_phy"""
-        return addr
+        """Inverse function of _pic32_addr_to_phy
+
+           see http://www.johnloomis.org/microchip/pic32/memory/memory.html"""
+        if addr >= 0x1fc00000:  # boot ROM
+            return addr + 0xa0000000
+        elif addr >= 0x1d000000:  # flash, cached or uncached
+            if USE_CACHE:
+                return addr + 0x80000000
+            else:
+                return addr + 0xa0000000
+        else:
+            return addr + 0x80000000
 
     def _hex_addr_to_phy(self, addr):
         """Every four bytes in a PIC32 hexfile are a word"""
@@ -390,7 +408,10 @@ class PIC32DevKit(DevKitModel):
 
     def write(self, addr, data):
         if addr == self.config_data_addr:
+            logger.debug('skipping write to config_data_addr')
             return
+        else:
+            logger.debug('writing %d bytes to 0x%x' % (len(data), addr))
         assert(len(data) % 4 == 0)
         # write the new data array
         self._write_phy(self._hex_addr_to_phy(addr), bytearray(data))
