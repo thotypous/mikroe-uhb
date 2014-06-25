@@ -400,12 +400,6 @@ class PIC32DevKit(DevKitModel):
         """Every four bytes in a PIC32 hexfile are a word"""
         return addr
 
-    def _init_blocks(self):
-        # Take into account that device informs BootStart in PIC32-style address
-        self.BootStart = self._pic32_addr_to_phy(self.BootStart)
-        DevKitModel._init_blocks(self)
-        self.BootStart = self._phy_addr_to_pic32(self.BootStart)
-
     def _write_addr(self, blk, blk_off=0):
         return self._phy_addr_to_pic32(self.blockaddr[blk] + blk_off)
 
@@ -431,6 +425,7 @@ class PIC32DevKit(DevKitModel):
         blocks is a dict of bytearrays, containing data to be flashed
         to each flash block
         """
+        logger.debug('PIC32 initializing blocks, block = %s' % block)
         numblocks = self.BootStart // self.EraseBlock
         block_init = b'\xff' * self.EraseBlock
         if block is None:
@@ -450,7 +445,8 @@ class PIC32DevKit(DevKitModel):
            and are incremented using the size of each block defined in
            self.blocks. Override this method if a devkit does not have
            contiguous Flash memory addresses."""
-        self.blockaddr = self.blockaddr or {}
+        logger.debug('PIC32 initializing blockaddr, block = %s' % block)
+        self.blockaddr = getattr(self, 'blockaddr', {})
         blocklist = [block] if block is not None else range(len(self.blocks))
         for x in blocklist:
             self.blockaddr[x] = x * len(self.blocks[0])
