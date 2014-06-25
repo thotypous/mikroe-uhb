@@ -105,6 +105,8 @@ class DevKitModel:
     def _write_phy(self, addr, data):
         """Write a data bytestring or bytearray to a physical Flash
            memory address (relative to self.blockaddr)."""
+        logger.debug('attempting to write %d bytes to addr 0x%x' % (
+            len(data), addr))
         # Find the block. Start searching from the last block written.
         blk = self._ptr
         while True:
@@ -112,7 +114,8 @@ class DevKitModel:
                 start_addr = self.blockaddr[blk]
                 end_addr = start_addr + len(self.blocks[blk])
             except IndexError as err:
-                raise IndexError('invalid address 0x%x' % addr)
+                raise IndexError('invalid block %d at address 0x%x' % (
+                    blk, addr))
             if addr >= end_addr:
                 blk += 1
             elif addr < start_addr:
@@ -416,6 +419,66 @@ class PIC32DevKit(DevKitModel):
         # write the new data array
         self._write_phy(self._hex_addr_to_phy(addr), bytearray(data))
 
+    def _init_blocks(self, block = None):
+        """
+        Initialize blocks of size EraseBlock from address 0 to BootStart.
+        Override this method if a devkit does not have a constant block size.
+        This method needs to initialize self.dirty and self.blocks.
+
+        dirty is a dict of booleans which tells us if the i-th block is
+        meant to be flashed to the device
+
+        blocks is a dict of bytearrays, containing data to be flashed
+        to each flash block
+        """
+        numblocks = self.BootStart // self.EraseBlock
+        block_init = b'\xff' * self.EraseBlock
+        if block is None:
+            self.dirty = dict([[i, False] for i in range(numblocks)])
+            maxblocks = min(MAXBLOCKS, numblocks)
+            logger.debug('buffering %d of %d blocks' % (maxblocks, numblocks))
+            self.blocks = dict([[i, bytearray(block_init)]
+                for i in xrange(maxblocks)])
+        else:
+            logger.debug('initializing extra block %d' % block)
+            self.blocks[block] = block_init
+            self.dirty[block] = False
+
+    def _init_blockaddr(self, block = None):
+        """Initialize self.blockaddr, a dict containing the starting address
+           of each Flash memory block. By default, addresses start at zero,
+           and are incremented using the size of each block defined in
+           self.blocks. Override this method if a devkit does not have
+           contiguous Flash memory addresses."""
+        self.blockaddr = self.blockaddr or {}
+        blocklist = [block] if block is not None else range(len(self.blocks))
+        for x in blocklist:
+            self.blockaddr[x] = x * len(self.blocks[0])
+
+    def _write_phy(self, addr, data):
+        """Write a data bytestring or bytearray to a physical Flash
+           memory address. (Actually just buffers data for `transfer`)"""
+        logger.debug('attempting to write %d bytes to addr 0x%x' % (
+            len(data), addr))
+        # Find the block.
+        blk = addr / len(self.blocks[0])
+        if not blk in self.blocks:
+            self._init_blocks(blk)
+            self._init_blockaddr(blk)
+        start_addr = self.blockaddr[blk]
+        end_addr = start_addr + len(self.blocks[blk])
+        self._ptr = blk
+        # Write data to the block
+        self.dirty[blk] = True
+        write_len = min(end_addr - addr, len(data))
+        write_off = addr - start_addr
+        self.blocks[blk][write_off:write_off+write_len] = data[:write_len]
+        # Check if any data is remaining which did not fit into the block
+        data = data[write_len:]
+        if len(data):
+            logger.debug('data trespassing block limits: addr=0x%x, write_len=0x%x' % (addr, write_len))
+            self._write_phy(addr + write_len, data)
+
     def fix_bootloader(self, disable_bootloader=False):
         first_block = self.blocks[0]
         jump_to_main_prog = first_block[:8]
@@ -435,3 +498,4 @@ def factory(bootinfo):
     if not mcu in _map:
         raise NotImplemented('support for this devkit is not yet implemented')
     return _map[mcu](bootinfo)
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
