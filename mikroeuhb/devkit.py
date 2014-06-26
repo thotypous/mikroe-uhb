@@ -105,7 +105,7 @@ class DevKitModel:
     def _write_phy(self, addr, data):
         """Write a data bytestring or bytearray to a physical Flash
            memory address (relative to self.blockaddr)."""
-        logger.debug('attempting to write %d bytes to addr 0x%x' % (
+        logger.debug('buffering %d bytes to addr 0x%x' % (
             len(data), addr))
         # Find the block. Start searching from the last block written.
         blk = self._ptr
@@ -191,6 +191,7 @@ class DevKitModel:
             
     def transfer(self, dev):
         """Transfer to the device data which was written to this devkit model"""
+        logger.debug('transfer to device starting')
         assert(isinstance(dev, Device))
         numblocks = len(self.dirty)
         # Find ranges of contiguous blocks which are marked as dirty
@@ -454,7 +455,7 @@ class PIC32DevKit(DevKitModel):
     def _write_phy(self, addr, data):
         """Write a data bytestring or bytearray to a physical Flash
            memory address. (Actually just buffers data for `transfer`)"""
-        logger.debug('attempting to write %d bytes to addr 0x%x' % (
+        logger.debug('buffering %d bytes to addr 0x%x' % (
             len(data), addr))
         # Find the block.
         blk = addr / len(self.blocks[0])
