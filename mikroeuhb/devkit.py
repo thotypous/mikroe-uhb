@@ -425,6 +425,8 @@ class PIC32DevKit(DevKitModel):
 
         blocks is a dict of bytearrays, containing data to be flashed
         to each flash block
+
+        FIXME: self.BootStart should be mapped to physical address!
         """
         logger.debug('PIC32 initializing blocks, block = %s' % block)
         numblocks = self.BootStart // self.EraseBlock
@@ -441,11 +443,15 @@ class PIC32DevKit(DevKitModel):
             self.dirty[block] = False
 
     def _init_blockaddr(self, block = None):
-        """Initialize self.blockaddr, a dict containing the starting address
-           of each Flash memory block. By default, addresses start at zero,
-           and are incremented using the size of each block defined in
-           self.blocks. Override this method if a devkit does not have
-           contiguous Flash memory addresses."""
+        """
+        Initialize self.blockaddr
+
+        a dict containing the starting address of each Flash memory block.
+        By default, addresses start at zero,
+        and are incremented using the size of each block defined in
+        self.blocks. Override this method if a devkit does not have
+        contiguous Flash memory addresses.
+        """
         logger.debug('PIC32 initializing blockaddr, block = %s' % block)
         self.blockaddr = getattr(self, 'blockaddr', {})
         blocklist = [block] if block is not None else range(len(self.blocks))
@@ -478,6 +484,24 @@ class PIC32DevKit(DevKitModel):
 
     def fix_bootloader(self, disable_bootloader=False):
         logger.debug('FIXME: fix_bootloader() unimplemented')
+
+    def transfer(self, dev):
+        """
+        Transfer to the device data which was written to this devkit model
+
+        see http://stackoverflow.com/questions/
+            2154249/identify-groups-of-continuous-numbers-in-a-list
+        """
+        logger.debug('transfer to device starting')
+        assert(isinstance(dev, Device))
+        # Find ranges of contiguous blocks which are marked as dirty
+        from operator import itemgetter
+        from itertools import groupby
+        inside = False
+        blocks = sorted([key for key in self.dirty.keys() if self.dirty[key]])
+        for key, group in groupby(enumerate(blocks), lambda(i, x): i - x):
+            blockrange = map(itemgetter(1), group)
+            self._blk_interval(dev, blockrange[0], blockrange[-1])
 
 _map = {}
 def factory(bootinfo):
