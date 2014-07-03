@@ -428,13 +428,13 @@ class PIC32DevKit(DevKitModel):
         """
         logger.debug('PIC32 initializing blocks, block = %s' % block)
         numblocks = self.BootStart // self.EraseBlock
+        logger.debug('initializing %d blocks of %d bytes each,'
+            ' total of 0x%x bytes' % (
+                numblocks, self.EraseBlock, self.BootStart))
         block_init = b'\xff' * self.EraseBlock
         if block is None:
-            self.dirty = dict([[i, False] for i in range(numblocks)])
-            maxblocks = min(MAXBLOCKS, numblocks)
-            logger.debug('buffering %d of %d blocks' % (maxblocks, numblocks))
-            self.blocks = dict([[i, bytearray(block_init)]
-                for i in xrange(maxblocks)])
+            self.dirty = {}
+            self.blocks = {}
         else:
             logger.debug('initializing extra block %d' % block)
             self.blocks[block] = block_init
@@ -450,7 +450,7 @@ class PIC32DevKit(DevKitModel):
         self.blockaddr = getattr(self, 'blockaddr', {})
         blocklist = [block] if block is not None else range(len(self.blocks))
         for x in blocklist:
-            self.blockaddr[x] = x * len(self.blocks[0])
+            self.blockaddr[x] = x * self.EraseBlock
 
     def _write_phy(self, addr, data):
         """Write a data bytestring or bytearray to a physical Flash
@@ -458,7 +458,7 @@ class PIC32DevKit(DevKitModel):
         logger.debug('buffering %d bytes to addr 0x%x' % (
             len(data), addr))
         # Find the block.
-        blk = addr / len(self.blocks[0])
+        blk = addr / self.EraseBlock
         if not blk in self.blocks:
             self._init_blocks(blk)
             self._init_blockaddr(blk)
