@@ -500,8 +500,10 @@ class PIC32DevKit(DevKitModel):
         inside = False
         blocks = sorted([key for key in self.dirty.keys() if self.dirty[key]])
         for key, group in groupby(enumerate(blocks), lambda(i, x): i - x):
-            blockrange = map(itemgetter(1), group)
-            self._blk_interval(dev, blockrange[0], blockrange[-1])
+            grouped = map(itemgetter(1), group)
+            logger.debug('writing blocks %d through %d' % (
+                grouped[0], grouped[1]))
+            self._blk_interval(dev, grouped[0], grouped[-1])
 
 _map = {}
 def factory(bootinfo):
