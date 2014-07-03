@@ -171,13 +171,15 @@ class DevKitModel:
             for blk_off in xrange(0, len(blk_data), self._write_max):
                 data = blk_data[blk_off:blk_off+self._write_max]
                 # Inform the device we are starting to send data
-                dev.send(Command.from_attr(Command.WRITE,
-                                           self._write_addr(blk, blk_off),
-                                           len(data)))
+                address = self._write_addr(blk, blk_off)
+                logger.debug('WRITE %d bytes to address 0x%x' % (
+                    len(data), address))
+                dev.send(Command.from_attr(Command.WRITE, address, len(data)))
                 dev_buf_rem = dev_buf_size
                 # Split into USB HID packets
                 for i in xrange(0, len(data), HID_buf_size):
                     pkt = data[i:i+HID_buf_size]
+                    logger.debug('sending packet: %s' % repr(pkt))
                     dev.send_data(pkt)
                     dev_buf_rem -= len(pkt)
                     if dev_buf_rem == 0:
