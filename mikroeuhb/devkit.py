@@ -437,7 +437,7 @@ class PIC32DevKit(DevKitModel):
             self.blocks = {}
         else:
             logger.debug('initializing extra block %d' % block)
-            self.blocks[block] = block_init
+            self.blocks[block] = bytearray(block_init)
             self.dirty[block] = False
 
     def _init_blockaddr(self, block = None):
@@ -477,9 +477,7 @@ class PIC32DevKit(DevKitModel):
             self._write_phy(addr + write_len, data)
 
     def fix_bootloader(self, disable_bootloader=False):
-        first_block = self.blocks[0]
-        jump_to_main_prog = first_block[:8]
-        logger.debug('first block: ' + hexlify(jump_to_main_prog))
+        logger.debug('FIXME: fix_bootloader() unimplemented')
 
 _map = {}
 def factory(bootinfo):
