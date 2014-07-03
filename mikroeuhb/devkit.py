@@ -179,7 +179,7 @@ class DevKitModel:
                 # Split into USB HID packets
                 for i in xrange(0, len(data), HID_buf_size):
                     pkt = data[i:i+HID_buf_size]
-                    logger.debug('sending packet: %s' % repr(pkt))
+                    #logger.debug('sending packet: %s' % repr(pkt))
                     dev.send_data(pkt)
                     dev_buf_rem -= len(pkt)
                     if dev_buf_rem == 0:
@@ -404,7 +404,10 @@ class PIC32DevKit(DevKitModel):
         return addr
 
     def _write_addr(self, blk, blk_off=0):
-        return self._phy_addr_to_pic32(self.blockaddr[blk] + blk_off)
+        '''
+        return the correct physical address for writing
+        '''
+        return self.blockaddr[blk] + blk_off
 
     def write(self, addr, data):
         if addr == self.config_data_addr:
