@@ -370,7 +370,7 @@ class PIC24DevKit(DevKitModel):
 class PIC32DevKit(DevKitModel):
     _supported = ['PIC32']
 
-    config_data_addr = 0x1fc00000  # don't overwrite bootloader
+    config_data_addr = 0x1fc02ff0  # don't overwrite configuration bits
     ''' http://hades.mech.northwestern.edu
         /index.php/NU32v2:_A_Detailed_Look_at_Programming_the_PIC32
         shows mapping of pic32 addresses to physical addresses'''
@@ -503,7 +503,7 @@ class PIC32DevKit(DevKitModel):
             grouped = map(itemgetter(1), group)
             logger.debug('writing blocks %d through %d' % (
                 grouped[0], grouped[1]))
-            self._blk_interval(dev, grouped[0], grouped[-1])
+            self._blk_interval(dev, grouped[0], grouped[-1] + 1)
 
 _map = {}
 def factory(bootinfo):
