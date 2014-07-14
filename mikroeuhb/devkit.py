@@ -4,7 +4,6 @@ from device import Device, Command, HID_buf_size
 logger = logging.getLogger(__name__)
 if __debug__:
     logger.setLevel(logging.DEBUG)
-MAXBLOCKS = 4096 * 32  # buffer no more than this many data blocks
 USE_CACHE = True  # PIC32 uses different virtual locations for cached flash
 
 def encode_instruction(template, field=None, endianness='<'):
@@ -69,9 +68,7 @@ class DevKitModel:
         self.dirty = [False for i in xrange(numblocks)]
         # blocks is a list of bytearrays, containing data to be flashed
         # to each flash block
-        maxblocks = min(MAXBLOCKS, numblocks)
-        logger.debug('buffering %d of %d blocks' % (maxblocks, numblocks))
-        self.blocks = [bytearray(block_init) for i in xrange(maxblocks)]
+        self.blocks = [bytearray(block_init) for i in xrange(numblocks)]
     def _init_blockaddr(self):
         """Initialize self.blockaddr, a list containing the starting address
            of each Flash memory block. By default, addresses start at zero,
@@ -373,10 +370,7 @@ class PIC24DevKit(DevKitModel):
 class PIC32DevKit(DevKitModel):
     _supported = ['PIC32']
 
-    config_data_addr = 0x1f00008
-    """ The address above is used for writing PIC configuration data.
-        However, writing this is not supported by the bootloader, so
-        we simply ignore any writes to this address."""
+    config_data_addr = 0x1fc00000  # don't overwrite bootloader
     ''' http://hades.mech.northwestern.edu
         /index.php/NU32v2:_A_Detailed_Look_at_Programming_the_PIC32
         shows mapping of pic32 addresses to physical addresses'''
@@ -410,7 +404,7 @@ class PIC32DevKit(DevKitModel):
         return self.blockaddr[blk] + blk_off
 
     def write(self, addr, data):
-        if addr == self.config_data_addr:
+        if addr >= self.config_data_addr:
             logger.debug('skipping write to config_data_addr')
             return
         else:
