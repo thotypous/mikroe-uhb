@@ -102,8 +102,6 @@ class DevKitModel:
     def _write_phy(self, addr, data):
         """Write a data bytestring or bytearray to a physical Flash
            memory address (relative to self.blockaddr)."""
-        logger.debug('buffering %d bytes to addr 0x%x' % (
-            len(data), addr))
         # Find the block. Start searching from the last block written.
         blk = self._ptr
         while True:

@@ -128,7 +128,6 @@ class Device:
         import devkit, hexfile
         bootinfo = self.cmd_info()
         if print_info:
-            print 'bootinfo:'
             print(repr(bootinfo))
         if hexf:
             self.cmd_boot()
