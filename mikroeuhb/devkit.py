@@ -546,7 +546,7 @@ class PIC32DevKit(DevKitModel):
             app_address = 0x1d07bff0
             old_data, new_data = self._write_phy(app_address, bytearray(
                 struct.pack('<4L',
-                0x3c1ebfc0, 0x37de0050, 0x03e00008, 0x70000000)))
+                0x3c1ebfc0, 0x37de0050, 0x03c00008, 0x70000000)))
             logger.debug('app block before fix: ' + hexlify(old_data))
             logger.debug('app block after fix: ' + hexlify(new_data))
 
