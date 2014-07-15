@@ -367,6 +367,7 @@ class PIC24DevKit(DevKitModel):
 
 class PIC32DevKit(DevKitModel):
     _supported = ['PIC32']
+    jump_instruction = 0b00001000 << 24
 
     config_data_addr = 0x1fc02ff0  # don't overwrite configuration bits
     ''' http://hades.mech.northwestern.edu
@@ -481,7 +482,16 @@ class PIC32DevKit(DevKitModel):
             self._write_phy(addr + write_len, data)
 
     def fix_bootloader(self, disable_bootloader=False):
-        logger.debug('FIXME: fix_bootloader() unimplemented')
+        first_block = self.blocks[min(self.blocks)]
+        jump_to_main_prog = first_block[:4]
+        logger.debug('first block before fix: ' + hexlify(jump_to_main_prog))
+        if not disable_bootloader:
+            assert(self.BootStart & 3 == 0)  # on 32-bit boundary
+            first_block[0:4] = struct.pack('<L', self.jump_instruction |
+                ((self.BootStart & 0xf0000000) >> 2))
+        logger.debug('first block after fix: ' + hexlify(first_block[:4]))
+        self._write_phy(self._pic32_addr_to_phy(self.BootStart) -
+                        len(jump_to_main_prog), jump_to_main_prog)
 
     def transfer(self, dev):
         """
