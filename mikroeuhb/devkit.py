@@ -489,6 +489,45 @@ class PIC32DevKit(DevKitModel):
         0x1fc00040:       3c1e9d07        lui     s8,0x9d07
         0x1fc00044:       37dec000        ori     s8,s8,0xc000
         0x1fc00048:       03c00008        jr      s8
+
+        but when that is fixed, and the code at 0x9d07bff0 is not, the
+        calculator (or whatever app is written) does not work, though
+        the bootloader still runs. when neither location is fixed, the
+        app (Calculator) works, but the bootloader does not, and one must
+        use pic32prog to restore it before mikroe-uhb can be used again.
+
+        this following diff compares the result of this older "it works!"
+        revision of mikroe-uhb to the same app written under Windows,
+        which both runs and is rewritable with mikroe-uhb.
+
+        jcomeau@aspire:~/rentacoder/jmuzzio$ diff pic32mx7_app.xxd /tmp
+        31744c31744
+        < 007bff0: 0000 0070 0000 0070 0800 e003 0000 0070  ...p...p.......p
+        ---
+        > 007bff0: c0bf 1e3c 5000 de37 0800 c003 0000 0070  ...<P..7.......p
+        jcomeau@aspire:~/rentacoder/jmuzzio$ diff pic32mx7_boot.xxd /tmp
+        5c5
+        < 0000040: 0000 0070 0000 0070 0000 0070 0000 0070  ...p...p...p...p
+        ---
+        > 0000040: 079d 1e3c 00c0 de37 0800 c003 0000 0070  ...<...7.......p
+
+        jcomeau@aspire:~/rentacoder/jmuzzio$ diff pic32mx7_app.disasm /tmp
+        2c2
+        < pic32mx7_app.bin:     file format binary
+        ---
+        > /tmp/pic32mx7_app.bin:     file format binary
+        126132,126134c126132,126134
+        <    7bff0: 70000000    0x70000000
+        <    7bff4: 70000000    0x70000000
+        <    7bff8: 03e00008    jr  ra
+        ---
+        >    7bff0: 3c1ebfc0    lui s8,0xbfc0
+        >    7bff4: 37de0050    ori s8,s8,0x50
+        >    7bff8: 03c00008    jr  s8
+
+        note that the two locations being jumped to are in each case just
+        before each other's jump address: 0x9d07c000 (0x1d07bff0) and
+        0xbfc00050 (0x1fc00040)
         '''
         block = self.blocks[self.boot_rom_addr / self.EraseBlock]
         jump_to_main_prog = block[0x40:0x4c]
@@ -498,6 +537,18 @@ class PIC32DevKit(DevKitModel):
             block[0x40:0x4c] = struct.pack('<3L',
                 0x3c1e9d07, 0x37dec000, 0x03c00008)
         logger.debug('boot block after fix: ' + hexlify(block[0x40:0x4c]))
+        blocknumber = 0x1d07bff0 / self.EraseBlock
+        if not blocknumber in self.blocks:
+            self._init_blocks(blocknumber)
+            self._init_blockaddr(blocknumber)
+        block = self.blocks[blocknumber]
+        jump_to_bootblock = block[-0x10:]  # last 16 bytes
+        logger.debug('app block before fix: ' + hexlify(jump_to_bootblock))
+        if not disable_bootloader:
+            block[-0x10:] = struct.pack('<4L',
+                0x3c1ebfc0, 0x37de0050, 0x03e00008, 0x70000000)
+        logger.debug('app block after fix: ' + hexlify(block[-0x10:]))
+
 
     def transfer(self, dev):
         """
