@@ -516,7 +516,7 @@ class PIC32DevKit(DevKitModel):
         for key, group in groupby(enumerate(blocks), lambda(i, x): i - x):
             grouped = map(itemgetter(1), group)
             logger.debug('writing blocks %d through %d' % (
-                grouped[0], grouped[1]))
+                grouped[0], grouped[-1] + 1))
             self._blk_interval(dev, grouped[0], grouped[-1] + 1)
 
 _map = {}
