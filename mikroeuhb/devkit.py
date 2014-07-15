@@ -457,8 +457,12 @@ class PIC32DevKit(DevKitModel):
             self.blockaddr[x] = x * self.EraseBlock
 
     def _write_phy(self, addr, data):
-        """Write a data bytestring or bytearray to a physical Flash
-           memory address. (Actually just buffers data for `transfer`)"""
+        '''
+        Write a data bytestring or bytearray to a physical Flash address
+
+        (Actually just buffers data for `transfer`)
+        returns data that was there before along with new data
+        '''
         logger.debug('buffering %d bytes to addr 0x%x' % (
             len(data), addr))
         # Find the block.
@@ -473,12 +477,16 @@ class PIC32DevKit(DevKitModel):
         self.dirty[blk] = True
         write_len = min(end_addr - addr, len(data))
         write_off = addr - start_addr
-        self.blocks[blk][write_off:write_off+write_len] = data[:write_len]
+        old_data = self.blocks[blk][write_off:write_off + write_len]
+        new_data = data[:write_len]
+        self.blocks[blk][write_off:write_off + write_len] = new_data
         # Check if any data is remaining which did not fit into the block
         data = data[write_len:]
         if len(data):
-            logger.debug('data trespassing block limits: addr=0x%x, write_len=0x%x' % (addr, write_len))
+            logger.debug('data trespassing block limits:'
+                ' addr=0x%x, write_len=0x%x' % (addr, write_len))
             self._write_phy(addr + write_len, data)
+        return old_data, new_data
 
     def fix_bootloader(self, disable_bootloader=False):
         '''
@@ -529,26 +537,18 @@ class PIC32DevKit(DevKitModel):
         before each other's jump address: 0x9d07c000 (0x1d07bff0) and
         0xbfc00050 (0x1fc00040)
         '''
-        block = self.blocks[self.boot_rom_addr / self.EraseBlock]
-        jump_to_main_prog = block[0x40:0x4c]
-        logger.debug('boot block before fix: ' + hexlify(jump_to_main_prog))
         if not disable_bootloader:
-            assert(self.BootStart & 3 == 0)  # on 32-bit boundary
-            block[0x40:0x4c] = struct.pack('<3L',
-                0x3c1e9d07, 0x37dec000, 0x03c00008)
-        logger.debug('boot block after fix: ' + hexlify(block[0x40:0x4c]))
-        blocknumber = 0x1d07bff0 / self.EraseBlock
-        if not blocknumber in self.blocks:
-            self._init_blocks(blocknumber)
-            self._init_blockaddr(blocknumber)
-        block = self.blocks[blocknumber]
-        jump_to_bootblock = block[-0x10:]  # last 16 bytes
-        logger.debug('app block before fix: ' + hexlify(jump_to_bootblock))
-        if not disable_bootloader:
-            block[-0x10:] = struct.pack('<4L',
-                0x3c1ebfc0, 0x37de0050, 0x03e00008, 0x70000000)
-        logger.debug('app block after fix: ' + hexlify(block[-0x10:]))
-
+            boot_address = 0x1fc00040
+            old_data, new_data = self._write_phy(boot_address, bytearray(
+                struct.pack('<3L', 0x3c1e9d07, 0x37dec000, 0x03c00008)))
+            logger.debug('boot block before fix: ' + hexlify(old_data))
+            logger.debug('boot block after fix: ' + hexlify(new_data))
+            app_address = 0x1d07bff0
+            old_data, new_data = self._write_phy(app_address, bytearray(
+                struct.pack('<4L',
+                0x3c1ebfc0, 0x37de0050, 0x03e00008, 0x70000000)))
+            logger.debug('app block before fix: ' + hexlify(old_data))
+            logger.debug('app block after fix: ' + hexlify(new_data))
 
     def transfer(self, dev):
         """
