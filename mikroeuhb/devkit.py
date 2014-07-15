@@ -482,6 +482,8 @@ class PIC32DevKit(DevKitModel):
             self._write_phy(addr + write_len, data)
 
     def fix_bootloader(self, disable_bootloader=False):
+        'make sure bootloader still operable after flashing'
+        return
         first_block = self.blocks[min(self.blocks.keys())]
         jump_to_main_prog = first_block[:4]
         logger.debug('first block before fix: ' + hexlify(jump_to_main_prog))
