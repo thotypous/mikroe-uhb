@@ -429,11 +429,11 @@ class PIC32DevKit(DevKitModel):
         """
         logger.debug('PIC32 initializing blocks, block = %s' % block)
         numblocks = self.BootStart // self.EraseBlock
-        logger.debug('initializing %d blocks of %d bytes each,'
-            ' total of 0x%x bytes' % (
-                numblocks, self.EraseBlock, self.BootStart))
         block_init = b'\xff' * self.EraseBlock
         if block is None:
+            logger.debug('initializing %d blocks of %d bytes each,'
+                ' total of 0x%x bytes' % (
+                numblocks, self.EraseBlock, self.BootStart))
             self.dirty = {}
             self.blocks = {}
         else:
@@ -482,16 +482,14 @@ class PIC32DevKit(DevKitModel):
             self._write_phy(addr + write_len, data)
 
     def fix_bootloader(self, disable_bootloader=False):
-        first_block = self.blocks[min(self.blocks)]
+        first_block = self.blocks[min(self.blocks.keys())]
         jump_to_main_prog = first_block[:4]
         logger.debug('first block before fix: ' + hexlify(jump_to_main_prog))
         if not disable_bootloader:
             assert(self.BootStart & 3 == 0)  # on 32-bit boundary
             first_block[0:4] = struct.pack('<L', self.jump_instruction |
-                ((self.BootStart & 0xf0000000) >> 2))
+                ((self.BootStart & 0x0fffffff) >> 2))
         logger.debug('first block after fix: ' + hexlify(first_block[:4]))
-        self._write_phy(self._pic32_addr_to_phy(self.BootStart) -
-                        len(jump_to_main_prog), jump_to_main_prog)
 
     def transfer(self, dev):
         """
