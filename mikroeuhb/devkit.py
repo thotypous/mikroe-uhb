@@ -367,9 +367,8 @@ class PIC24DevKit(DevKitModel):
 
 class PIC32DevKit(DevKitModel):
     _supported = ['PIC32']
-    jump_instruction = 0b00001000 << 24
-
-    config_data_addr = 0x1fc02ff0  # don't overwrite configuration bits
+    boot_rom_addr = 0x1fc00000
+    config_data_addr = boot_rom_addr | 0x2ff0  # configuration bits
     ''' http://hades.mech.northwestern.edu
         /index.php/NU32v2:_A_Detailed_Look_at_Programming_the_PIC32
         shows mapping of pic32 addresses to physical addresses'''
@@ -382,7 +381,7 @@ class PIC32DevKit(DevKitModel):
         """Inverse function of _pic32_addr_to_phy
 
            see http://www.johnloomis.org/microchip/pic32/memory/memory.html"""
-        if addr >= 0x1fc00000:  # boot ROM
+        if addr >= self.boot_rom_addr:
             return addr + 0xa0000000
         elif addr >= 0x1d000000:  # flash, cached or uncached
             if USE_CACHE:
@@ -482,16 +481,23 @@ class PIC32DevKit(DevKitModel):
             self._write_phy(addr + write_len, data)
 
     def fix_bootloader(self, disable_bootloader=False):
-        'make sure bootloader still operable after flashing'
-        return
-        first_block = self.blocks[min(self.blocks.keys())]
-        jump_to_main_prog = first_block[:4]
-        logger.debug('first block before fix: ' + hexlify(jump_to_main_prog))
+        '''
+        make sure bootloader still operable after flashing
+
+        particularly, this jump vector from the bootloader needs to be
+        reinstated:
+        0x1fc00040:       3c1e9d07        lui     s8,0x9d07
+        0x1fc00044:       37dec000        ori     s8,s8,0xc000
+        0x1fc00048:       03c00008        jr      s8
+        '''
+        block = self.blocks[self.boot_rom_addr / self.EraseBlock]
+        jump_to_main_prog = block[0x40:0x4c]
+        logger.debug('boot block before fix: ' + hexlify(jump_to_main_prog))
         if not disable_bootloader:
             assert(self.BootStart & 3 == 0)  # on 32-bit boundary
-            first_block[0:4] = struct.pack('<L', self.jump_instruction |
-                ((self.BootStart & 0x0fffffff) >> 2))
-        logger.debug('first block after fix: ' + hexlify(first_block[:4]))
+            block[0x40:0x4c] = struct.pack('<3L',
+                0x3c1e9d07, 0x37dec000, 0x03c00008)
+        logger.debug('boot block after fix: ' + hexlify(block[0x40:0x4c]))
 
     def transfer(self, dev):
         """
