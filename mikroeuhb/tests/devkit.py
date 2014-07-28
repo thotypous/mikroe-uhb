@@ -1,7 +1,8 @@
-import random, unittest
+import random, unittest, logging
 from binascii import unhexlify
+import repeatable, logexception
 import mikroeuhb.devkit as devkit
-import repeatable
+devkit.logger.addHandler(logexception.LogExceptionHandler(level=logging.WARNING))
 
 _stm32 = {
     'McuType': 'STM32F4XX',
