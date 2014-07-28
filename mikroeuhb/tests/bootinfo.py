@@ -52,6 +52,20 @@ class PIC18Board(BootInfoCase):
         'DevDsc': b'NO NAME\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
         'McuSize': 0x8000,
     }
+    
+class MultiMediaBoardPIC32MX7(BootInfoCase):
+    data = """380114000300001004000002050000130600000000c0079d07
+    4d4d42204d58370000000000000000000000000000000008000000000008
+    000000000000000000"""
+    expected = {
+        'McuType': 'PIC32',
+        'EraseBlock': 0x1000,
+        'WriteBlock': 0x200,
+        'BootRev': 0x1300,
+        'BootStart': 2634530816L,
+        'DevDsc': 'MMB MX7\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
+        'McuSize': 0x80000,
+    }
 
 class RandomBootInfo(BootInfoCase):
     """Assemble random BootInfo structs, compile them using gcc -m32,
@@ -146,4 +160,5 @@ class RandomBootInfo(BootInfoCase):
         shutil.rmtree(self.tempdir)
 
 load_tests = repeatable.make_load_tests([MikromediaSTM32, MikromediaDSPIC33,
+                                         MultiMediaBoardPIC32MX7,
                                          PIC18Board, RandomBootInfo])
