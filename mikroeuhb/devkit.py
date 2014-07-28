@@ -408,7 +408,7 @@ class PIC32DevKit(DevKitModel):
         else:
             logger.debug('writing %d bytes to 0x%x' % (len(data), addr))
         if len(data) % 4:
-            logger.warning('writing data of length %d' % len(data))
+            logger.debug('writing data of length %d' % len(data))
         # write the new data array
         self._write_phy(self._hex_addr_to_phy(addr), bytearray(data))
 
