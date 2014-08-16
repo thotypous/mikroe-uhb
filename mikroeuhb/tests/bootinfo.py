@@ -52,7 +52,7 @@ class PIC18Board(BootInfoCase):
         'DevDsc': b'NO NAME\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
         'McuSize': 0x8000,
     }
-    
+
 class MultiMediaBoardPIC32MX7(BootInfoCase):
     data = """380114000300001004000002050000130600000000c0079d07
     4d4d42204d58370000000000000000000000000000000008000000000008
@@ -62,17 +62,17 @@ class MultiMediaBoardPIC32MX7(BootInfoCase):
         'EraseBlock': 0x1000,
         'WriteBlock': 0x200,
         'BootRev': 0x1300,
-        'BootStart': 2634530816L,
-        'DevDsc': 'MMB MX7\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
+        'BootStart': 0x9d07c000,
+        'DevDsc': b'MMB MX7\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
         'McuSize': 0x80000,
     }
 
 class RandomBootInfo(BootInfoCase):
     """Assemble random BootInfo structs, compile them using gcc -m32,
     and check if they are correctly parsed by us"""
-    
+
     count = 20
-    
+
     _template = """
     #include <stdio.h>
     #include <stdint.h>
@@ -109,7 +109,7 @@ class RandomBootInfo(BootInfoCase):
 	return 0;
     }}
     """
-    
+
     _smap = {1: 'sUInt8', 2: 'sUInt16', 4: 'sUInt32', 20: 'sString'}
     def setUp(self):
         types = set(bootinfo._field.keys()) - set([1])
@@ -117,11 +117,11 @@ class RandomBootInfo(BootInfoCase):
         types = random.sample(types, n)
         types.append(1)
         random.shuffle(types)
-        
+
         self.expected = {}
         members = ''
         data = ''
-        
+
         for tid in types:
             name, num_bytes, enum_map = bootinfo._field[tid]
             if enum_map:
@@ -142,7 +142,7 @@ class RandomBootInfo(BootInfoCase):
             members += '%s %s;\n' % (self._smap[num_bytes], name)
             data += '{%d, %s},\n' % (tid, str(value))
             self.expected[name] = expected_value
-            
+
         program = self._template.format(members=members, data=data)
         self.tempdir = tempfile.mkdtemp('bootinfo')
         sourcefile = os.path.join(self.tempdir, 'test.c')
@@ -150,7 +150,7 @@ class RandomBootInfo(BootInfoCase):
         f = open(sourcefile, 'w')
         f.write(program)
         f.close()
-        
+
         p = subprocess.Popen(['gcc', '-m32', sourcefile, '-o', programfile])
         p.wait()
         p = subprocess.Popen([programfile], stdout=subprocess.PIPE)
