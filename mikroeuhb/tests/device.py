@@ -122,4 +122,15 @@ class DSPIC33Program(DevKitCase):
     hexfile = 'dspic33calc.hex.gz'
     capfile = 'dspic33calc.cap.gz'
 
-load_tests = repeatable.make_load_tests([STM32Program, PIC18Program, DSPIC33Program])
+class PIC32Program(DevKitCase):
+    """Test if the calculator sample kindly provided by
+       John Comeau is written as expected onto a
+       PIC32 devkit."""
+    bootinfo = """380114000300001004000002050000130600000000c0079d07
+    4d4d42204d58370000000000000000000000000000000008000000000008
+    000000000000000000"""
+    hexfile = 'pic32calc.hex.gz'
+    capfile = 'pic32calc.cap.gz'
+
+load_tests = repeatable.make_load_tests([STM32Program, PIC18Program,
+                                         DSPIC33Program, PIC32Program])

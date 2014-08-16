@@ -1,12 +1,14 @@
-import random, unittest
+import random, unittest, logging
 from binascii import unhexlify
+import repeatable, logexception
 import mikroeuhb.devkit as devkit
-import repeatable
+devkit.logger.addHandler(logexception.LogExceptionHandler(level=logging.WARNING))
 
 _stm32 = {
     'McuType': 'STM32F4XX',
     'EraseBlock': 0x4000,
-    'BootStart': 0xe0000
+    'BootStart': 0xe0000,
+    'McuSize': 0x100000
 }
 
 class EncodeInstr(unittest.TestCase):
@@ -24,7 +26,7 @@ class STM32Factory(unittest.TestCase):
         bootinfo = dict(_stm32)
         for mcu in devkit.STM32DevKit._supported:
             bootinfo['McuType'] = mcu
-            self.assertIsInstance(devkit.factory(bootinfo), devkit.STM32DevKit)            
+            self.assertIsInstance(devkit.factory(bootinfo), devkit.STM32DevKit)
 
 class STM32Bootloader(unittest.TestCase):
     """The beginning of the first block, and the end of the last block before
@@ -37,8 +39,8 @@ class STM32Bootloader(unittest.TestCase):
         self.assertEqual(unhexlify('FCFF012001000E00'),
                          kit.blocks[0][:8])
         self.assertEqual(unhexlify('4FF6FC70C2F20100854647F69960C0F200000047'),
-                         kit.blocks[-1][-20:])
-        
+                         kit.blocks[len(kit.blockaddr)-1][-20:])
+
 class STM32IndexError(unittest.TestCase):
     """Test if we fail correctly when writing outside range or when trying to
     overwrite the bootloader sector"""
@@ -60,8 +62,9 @@ class STM32FullFlashBlock(unittest.TestCase):
         for i in xrange(memsize):
             randmem[i] = random.randint(0, 255)
         kit.write(0x08000000, randmem)
-        self.assertEqual(b''.join(map(bytes,kit.blocks)), bytes(randmem))
-        
+        self.assertEqual(b''.join([bytes(kit.blocks[i]) for i,_ in enumerate(kit.blockaddr)]),
+                         bytes(randmem))
+
 class STM32RandomWrites(unittest.TestCase):
     """Do self.blkcount random block writes to flash, and check if data
     does not corrupt"""
@@ -81,8 +84,11 @@ class STM32RandomWrites(unittest.TestCase):
                 randblk[i] = random.randint(0, 255)
             randmem[addr:addr+size] = randblk
             kit.write(0x08000000 + addr, randblk)
-        self.assertEqual(b''.join(map(bytes,kit.blocks)), bytes(randmem))
-        
+            self.assertEqual(b''.join([bytes(kit.blocks[i] if i in kit.blocks else
+                                             b'\xff'*(end_addr - start_addr))
+                                       for i, (start_addr, end_addr) in enumerate(kit.blockaddr)]),
+                             bytes(randmem))
+
 load_tests = repeatable.make_load_tests([
     EncodeInstr, STM32Factory, STM32Bootloader, STM32IndexError,
     STM32FullFlashBlock, STM32RandomWrites
