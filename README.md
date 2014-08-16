@@ -1,7 +1,7 @@
 mikroe-uhb
 ==========
 
-Open-source cross-platform USB HID Bootloader programming application for devices manufactured by MikroElektronika.
+Open-source cross-platform USB HID Bootloader programming tool for devices manufactured by MikroElektronika.
 
 
 Supported devices
@@ -9,19 +9,23 @@ Supported devices
 
 ### ARM devices
 
-Currently, this project was only tested with a **Mikromedia for STM32** development kit. However, from what I understand of the bootloader source code and by reverse engineering the mikroBootloader application supplied by the manufacturer, I believe it should work for any ARM-based development kit currently available from MikroElektronika.
+This project was tested with a **Mikromedia for STM32** development kit. However, from what I understand of the bootloader source code and by reverse engineering the mikroBootloader application supplied by the manufacturer, I believe it should work for any ARM-based development kit currently available from MikroElektronika.
 
 If you plan to test this application using any development kit different from the STM32 ones, please be prepared to use JTAG if something goes wrong (although the bootloader itself has a protection code which should bar most mistakes).
 
 ### PIC18 devices
 
-This project is currently under test with PIC18 devices. Many thanks to Kerekes Szilard for providing USB captures and further information.
+This project was tested with a **PIC18F4550** device. Many thanks to Kerekes Szilard for providing USB captures and further information.
 
 ### dsPIC and PIC24 devices
 
-This project is currently under test with a **Mikromedia for dsPIC33EP** development kit. Many thanks to Toni Petrovič for providing USB captures and further information.
+This project was tested with a **Mikromedia for dsPIC33EP** development kit. Many thanks to Toni Petrovič for providing USB captures and further information.
 
 PIC24 devices were still not tested, but should also be supported by the same backend, as the architectures are much similar and reverse engineering revealed almost identical handling of them by mikroBootloader.
+
+### PIC32 devices
+
+This project was tested with a **MultiMedia Board for PIC32MX7** development kit. Many thanks to John Comeau for implementing the support and providing us with patches and testing data.
 
 
 How to install
@@ -40,7 +44,7 @@ This application is compatible both with Python 2.7 and with Python 3. The `pyud
 
 ### On Windows
 
-We provide standalone binary releases [here](https://github.com/thotypous/mikroe-uhb/releases). Just download the executable and use it.
+We provide standalone binary releases [here](https://github.com/thotypous/mikroe-uhb/releases). Just download the executable and use it. Take a look at the [wiki](https://github.com/thotypous/mikroe-uhb/wiki/Creating-a-standalone-executable-for-Windows) if you want to build your own executable.
 
 ### On other operating systems
 
@@ -81,8 +85,6 @@ How to contribute
 
 I do not own development kits from MikroElektronika other than the Mikromedia for STM32, so I cannot test this project with other devices. However, support for them is certainly welcome.
 
-Most kits need their own `fix_bootloader` implementation in `devkit.py`. PIC32 has a different memory division scheme with I did not study in detail. Kits based on other MCUs should be more straightforward to support.
-
 Code should be self-documenting. There are also some useful tools for dealing with USB captures made with Wireshark under the `devtools` directory. Please read the comments.
 
 If you cannot contribute with code, providing USB capture dumps is very useful. They can be obtained the following way:
@@ -93,3 +95,7 @@ If you cannot contribute with code, providing USB capture dumps is very useful. 
 * Please provide me with the capture file saved by Wireshark and with the hex file you used to program your device.
 
 You can also take USB captures directly on Wireshark for Windows if you install the [usbpcap driver](http://desowin.org/usbpcap) and follow the instructions in its website. Please do not forget to use a Wireshark version able to support the driver.
+
+### Testing with another development kits
+
+Contributions have helped us to implement support for almost every device currently manufactured by MikroElektronika, but more testing is needed. Please report if you test the tool with another development kit besides the ones enumerated in this document.
