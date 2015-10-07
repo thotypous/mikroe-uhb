@@ -15,6 +15,7 @@ _mcutype_enum = {
     35: 'STM32F1XX',
     36: 'STM32F2XX',
     37: 'STM32F4XX',
+    38: 'TIVA_M4',
 }
 
 # Fields which may be present in a BootInfo struct, in the following format:

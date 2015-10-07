@@ -236,7 +236,7 @@ class DevKitModel:
 
 class ARMDevKit(DevKitModel):
     """Implements bootloader fixes for all ARM-Thumb devkits"""
-    _supported = ['ARM', 'STELLARIS_M3', 'STELLARIS_M4', 'STELLARIS']
+    _supported = ['ARM', 'STELLARIS_M3', 'STELLARIS_M4', 'STELLARIS', 'TIVA_M4']
     """The devkits above appear to use the default Flash memory block model,
        thus only the bootloader fix needs to diverge from the base devkit model."""
     def fix_bootloader(self, disable_bootloader=False):
