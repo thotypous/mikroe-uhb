@@ -4,12 +4,13 @@ logger = logging.getLogger(__name__)
 def find_usbid(dev):
     """Walk pyudev device parents until USB idVendor and idProduct
        informations are found"""
-    ids = ['idVendor', 'idProduct']
+    id_keys = ['idVendor', 'idProduct']
     while dev:
         attr = dev.attributes
-        if False not in [x in attr for x in ids]:
-            return tuple([int(attr[x], 16) for x in ids])
-        dev = dev.parent
+        try:
+            return tuple([int(attr.asstring(k), 16) for k in id_keys])
+        except KeyError:
+            dev = dev.parent
 
 def wait_dev(vendor, product, subsystem='hidraw'):
     """Wait for a device with the supplied USB vendor and product IDs
