@@ -25,7 +25,7 @@ PIC24 devices were still not tested, but should also be supported by the same ba
 
 ### PIC32 devices
 
-This project was tested with a **MultiMedia Board for PIC32MX7** development kit. Many thanks to John Comeau for implementing the support and providing us with patches and testing data.
+This project was tested with a **MultiMedia Board for PIC32MX7** development kit. Many thanks to John Comeau for implementing the support and providing us with patches and testing data. It is also reported to work with **Mikroelektronika Mini-32**.
 
 
 How to install
