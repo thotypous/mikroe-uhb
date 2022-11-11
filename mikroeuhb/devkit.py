@@ -395,6 +395,84 @@ class PIC32DevKit(DevKitModel):
 
     def _init_blockaddr(self):
         self.blockaddr = []
+        
+        self._init_blockrange(self.main_flash_addr, self.main_flash_addr + self.McuSize)
+        # The last Flash block range should stop before the the start of the block
+        # containing configuration bits, to prevent its erasure.
+        config_offset_in_block = (self.config_data_addr - self.boot_rom_addr) % self.EraseBlock
+        config_block_start = self.config_data_addr - config_offset_in_block
+        self._init_blockrange(self.boot_rom_addr, config_block_start)
+
+    def _pic32_addr_to_phy(self, addr):
+        """Convert a PIC32 address representation to the
+        physical number-of-the-byte inside the Flash blocks."""
+        return addr & 0x1fffffff
+
+    def _phy_addr_to_pic32(self, addr, use_cache=True):
+        """Inverse function of _pic32_addr_to_phy
+
+        see http://www.johnloomis.org/microchip/pic32/memory/memory.html"""
+        if addr >= self.boot_rom_addr:
+            return addr + 0xa0000000
+        elif addr >= self.main_flash_addr: # flash, cached or uncached
+            if use_cache:
+                return addr + 0x80000000
+            else:
+                return addr + 0xa0000000
+        else:
+            return addr + 0x80000000
+
+    def fix_bootloader(self, disable_bootloader=False):
+        boot_rom_first_instr, = struct.unpack('<L',
+            self._read_phy(self.boot_rom_addr, 4))
+        logger.debug('first instruction on boot rom: 0x%08x' %
+            boot_rom_first_instr)
+        def jump_to(addr):
+            return struct.pack('<4L',
+                0x3c1e0000 | (addr >> 16),     # lui $30,[addr>>16]
+                0x37de0000 | (addr & 0xffff),  # ori $30,$30,[addr&0xffff]
+                0x03c00008,                    # jr $30
+                0x70000000)                    # nop
+        startprogram_routine = jump_to(
+            self._phy_addr_to_pic32(self.boot_rom_addr + 0x50))
+        startprogram_routine_len = len(startprogram_routine)
+        startprogram_routine_addr = self._pic32_addr_to_phy(
+            self.BootStart - startprogram_routine_len)
+        if boot_rom_first_instr in (0x27bdfffc,  # addiu $sp,$sp,-4
+                                    0x70000000): # nop
+            jump_bootstart_displ = 0x40
+        else:
+            jump_bootstart_displ = 0
+            startprogram_routine = self._read_phy(
+                self.boot_rom_addr, startprogram_routine_len)
+        logger.debug('start program routine before fix: ' +
+                     hexlify(self._read_phy(startprogram_routine_addr,
+                                            startprogram_routine_len)))
+        logger.debug('start program routine after fix:  ' +
+                     hexlify(startprogram_routine))
+        self._write_phy(startprogram_routine_addr, startprogram_routine)
+        if not disable_bootloader:
+            jump_bootstart_addr = self.boot_rom_addr + jump_bootstart_displ
+            jump_bootstart_code = jump_to(self.BootStart)
+            jump_bootstart_len = len(jump_bootstart_code)
+            logger.debug('jump to bootstart before fix: ' +
+                         hexlify(self._read_phy(jump_bootstart_addr,
+                                                jump_bootstart_len)))
+            self._write_phy(jump_bootstart_addr, jump_bootstart_code)
+            logger.debug('jump to bootstart after fix:  ' +
+                         hexlify(jump_bootstart_code))
+            
+class PIC32MZDevKit(DevKitModel):
+    _supported = ['PIC32MZ']
+
+    main_flash_addr = 0x1d000000
+    boot_rom_addr   = 0x1fc00000
+
+    config_data_addr = boot_rom_addr | 0xff00  # configuration bits
+
+    def _init_blockaddr(self):
+        self.blockaddr = []
+        
         self._init_blockrange(self.main_flash_addr, self.main_flash_addr + self.McuSize)
         # The last Flash block range should stop before the the start of the block
         # containing configuration bits, to prevent its erasure.
