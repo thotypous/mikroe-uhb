@@ -468,3 +468,18 @@ class PIC32MZDevKit(PIC32DevKit):
     boot_rom_addr   = 0x1fc00000
 
     config_data_addr = boot_rom_addr | 0xff00  # configuration bits
+
+_map = {}
+def factory(bootinfo):
+    """Factory for constructing devkit objects from a bootinfo dictionary"""
+    if len(_map) == 0:
+        for clsname, cls in globals().iteritems():
+            if hasattr(cls, '_supported'):
+                for mcu in cls._supported:
+                    # a mcu cannot be supported by two different classes
+                    assert(mcu not in _map)
+                    _map[mcu] = cls
+    mcu = bootinfo['McuType']
+    if not mcu in _map:
+        raise NotImplemented('support for this devkit is not yet implemented')
+    return _map[mcu](bootinfo)
