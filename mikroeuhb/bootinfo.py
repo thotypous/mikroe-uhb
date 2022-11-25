@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 _mcutype_enum = {
     1:  'PIC16', 2: 'PIC18', 3: 'PIC18FJ', 4: 'PIC24',
     10: 'DSPIC', 11: 'DSPIC33',
-    20: 'PIC32',
+    20: 'PIC32', 21: 'PIC32MZ',
     30: 'ARM',
     31: 'STELLARIS_M3',
     32: 'STELLARIS_M4',

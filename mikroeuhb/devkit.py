@@ -395,6 +395,7 @@ class PIC32DevKit(DevKitModel):
 
     def _init_blockaddr(self):
         self.blockaddr = []
+        
         self._init_blockrange(self.main_flash_addr, self.main_flash_addr + self.McuSize)
         # The last Flash block range should stop before the the start of the block
         # containing configuration bits, to prevent its erasure.
@@ -460,6 +461,13 @@ class PIC32DevKit(DevKitModel):
             self._write_phy(jump_bootstart_addr, jump_bootstart_code)
             logger.debug('jump to bootstart after fix:  ' +
                          hexlify(jump_bootstart_code))
+            
+class PIC32MZDevKit(PIC32DevKit):
+    _supported = ['PIC32MZ']
+
+    boot_rom_addr   = 0x1fc00000
+
+    config_data_addr = boot_rom_addr | 0xff00  # configuration bits
 
 _map = {}
 def factory(bootinfo):
